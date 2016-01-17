@@ -12,7 +12,7 @@
  * @link        https://github.com/wudicgi/file-system-finder
  */
 
-class FileSystemFinder {
+class FileSystemFinder implements SeekableIterator, Countable, ArrayAccess {
     const WILDCARD_MATCHER = 'WildcardMatcher';
     const REGEX_MATCHER = 'RegexMatcher';
 
@@ -22,7 +22,9 @@ class FileSystemFinder {
 
     private $_default_matcher = self::WILDCARD_MATCHER;
 
-    private $_result = array();
+    private $_results = array();
+
+    private $_position = 0;
 
     // {{{ find()
 
@@ -64,7 +66,7 @@ class FileSystemFinder {
             $Finder = $Finder->file($parts[0]);
         }
 
-        return $Finder->results();
+        return $Finder;
     }
 
     // }}}
@@ -78,7 +80,7 @@ class FileSystemFinder {
      * @param integer   $matcher        The default match type for directory and file name
      */
     function __construct($directory, $matcher = self::WILDCARD_MATCHER) {
-        $this->_result = array($directory);
+        $this->_results = array($directory);
         $this->_default_matcher = $matcher;
     }
 
@@ -101,27 +103,27 @@ class FileSystemFinder {
 
         return $this;
     }
-    
-    public function results() {
-        return $this->_result;
+
+    public function toArray() {
+        return $this->_results;
     }
 
     private function _internalScan($expr, $matcher, $target_type) {
         $matcher_instance = $this->_getMatcherInstance($expr, $matcher);
 
-        $new_result = array();
+        $new_results = array();
 
-        foreach ($this->_result as $path) {
+        foreach ($this->_results as $path) {
             $list = $this->_scandirWithTargetType($path, $target_type);
 
             foreach ($list as $new_item) {
                 if ($matcher_instance->match($new_item)) {
-                    $new_result[] = "$path/$new_item";
+                    $new_results[] = "$path/$new_item";
                 }
             }
         }
 
-        $this->_result = $new_result;
+        $this->_results = $new_results;
     }
 
     private function _getMatcherInstance($expr, $matcher) {
@@ -176,6 +178,64 @@ class FileSystemFinder {
         }
 
         return $items;
+    }
+
+    public function __debugInfo() {
+        return $this->toArray();
+    }
+
+    // SeekableIterator
+
+    public function current() {
+        return $this->_results[$this->_position];
+    }
+
+    public function key() {
+        return $this->_position;
+    }
+
+    public function next() {
+        $this->_position++;
+    }
+
+    public function rewind() {
+        $this->_position = 0;
+    }
+
+    public function valid() {
+        return array_key_exists($this->_position, $this->_results);
+    }
+
+    public function seek($position) {
+        if (!array_key_exists($position, $this->_results)) {
+            trigger_error('The given position is out of bounds', E_USER_NOTICE);
+        }
+
+        $this->_position = $position;
+    }
+
+    // Countable
+
+    public function count() {
+        return count($this->_results);
+    }
+
+    // ArrayAccess
+
+    public function offsetExists($offset) {
+        return array_key_exists($offset, $this->_results);
+    }
+
+    public function offsetGet($offset) {
+        return $this->_results[$offset];
+    }
+
+    public function offsetSet($offset, $value) {
+        trigger_error('The ' . __CLASS__ . ' object cannot be modified', E_USER_NOTICE);
+    }
+
+    public function offsetUnset($offset) {
+        trigger_error('The ' . __CLASS__ . ' object cannot be modified', E_USER_NOTICE);
     }
 }
 

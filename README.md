@@ -12,26 +12,40 @@ include_once 'FileSystemFinder.php';
 
 $filelist = FileSystemFinder::find('C:/php/ext/php_pdo_*.dll');
 
-print_r($filelist);
+print_r($filelist);                 // via __debugInfo()
+echo "\r\n";
 
 
 // List files using file() method with a wildcard pattern
 
 $filelist = (new FileSystemFinder('C:/php/ext'))
-    ->file('php_pdo_*.dll')
-    ->results();
+    ->file('php_pdo_*.dll');
 
-print_r($filelist);
+print_r($filelist->toArray());      // using toArray()
+echo "\r\n";
 
 
 // List files using dir() and file() method with wildcard and regex patterns
 
 $filelist = (new FileSystemFinder('C:/php'))
     ->dir('dev|ext')                                    // using default wildcard matcher
-    ->file('/[0-9]/', FileSystemFinder::REGEX_MATCHER)  // using the specified regex matcher
-    ->results();
+    ->file('/[0-9]/', FileSystemFinder::REGEX_MATCHER); // using the specified regex matcher
 
+foreach ($filelist as $path) {      // via SeekableIterator interface
+    echo "$path\r\n";
+}
+echo "\r\n";
+
+
+// A combination of using both static and non-static method
+
+$filelist = FileSystemFinder::find('C:/php/dev|ext', FileSystemFinder::DIR_ONLY);
 print_r($filelist);
+
+$filelist = $filelist->file('/[0-9]/', FileSystemFinder::REGEX_MATCHER);
+print_r($filelist);
+
+echo "\r\n";
 
 
 // List files using wfio extension
@@ -39,7 +53,9 @@ print_r($filelist);
 if (extension_loaded('wfio')) {
     $filelist = FileSystemFinder::find('wfio://E:/Music/* 笑话/* 欢乐剧场/??? *大*.wma');
 
-    print_r($filelist);
+    for ($i = 0; $i < count($filelist); $i++) {     // via Countable interface
+        echo "[$i] => $filelist[$i]\r\n";           // via ArrayAccess interface
+    }
 } else {
     echo "The wfio extension is not loaded.\r\n";
 }
@@ -50,6 +66,16 @@ if (extension_loaded('wfio')) {
 The above example will output:
 
 ```
+FileSystemFinder Object
+(
+    [0] => C:/php/ext/php_pdo_firebird.dll
+    [1] => C:/php/ext/php_pdo_mysql.dll
+    [2] => C:/php/ext/php_pdo_oci.dll
+    [3] => C:/php/ext/php_pdo_odbc.dll
+    [4] => C:/php/ext/php_pdo_pgsql.dll
+    [5] => C:/php/ext/php_pdo_sqlite.dll
+)
+
 Array
 (
     [0] => C:/php/ext/php_pdo_firebird.dll
@@ -59,16 +85,19 @@ Array
     [4] => C:/php/ext/php_pdo_pgsql.dll
     [5] => C:/php/ext/php_pdo_sqlite.dll
 )
-Array
+
+C:/php/dev/php5ts.lib
+C:/php/ext/php_bz2.dll
+C:/php/ext/php_gd2.dll
+C:/php/ext/php_oci8_12c.dll
+C:/php/ext/php_sqlite3.dll
+
+FileSystemFinder Object
 (
-    [0] => C:/php/ext/php_pdo_firebird.dll
-    [1] => C:/php/ext/php_pdo_mysql.dll
-    [2] => C:/php/ext/php_pdo_oci.dll
-    [3] => C:/php/ext/php_pdo_odbc.dll
-    [4] => C:/php/ext/php_pdo_pgsql.dll
-    [5] => C:/php/ext/php_pdo_sqlite.dll
+    [0] => C:/php/dev
+    [1] => C:/php/ext
 )
-Array
+FileSystemFinder Object
 (
     [0] => C:/php/dev/php5ts.lib
     [1] => C:/php/ext/php_bz2.dll
@@ -76,18 +105,16 @@ Array
     [3] => C:/php/ext/php_oci8_12c.dll
     [4] => C:/php/ext/php_sqlite3.dll
 )
-Array
-(
-    [0] => wfio://E:/Music/04 笑话/01 欢乐剧场/036 武大日记.wma
-    [1] => wfio://E:/Music/04 笑话/01 欢乐剧场/087 大学趣闻.wma
-    [2] => wfio://E:/Music/04 笑话/01 欢乐剧场/109 武大郎后传.wma
-    [3] => wfio://E:/Music/04 笑话/01 欢乐剧场/117 孙大圣“评职”申请书.wma
-    [4] => wfio://E:/Music/04 笑话/01 欢乐剧场/120 肖大明白.wma
-    [5] => wfio://E:/Music/04 笑话/01 欢乐剧场/156 吃大户.wma
-    [6] => wfio://E:/Music/04 笑话/01 欢乐剧场/160 说大道小.wma
-    [7] => wfio://E:/Music/04 笑话/01 欢乐剧场/168 四大…….wma
-    [8] => wfio://E:/Music/04 笑话/01 欢乐剧场/197 过大年.wma
-)
+
+[0] => wfio://E:/Music/04 笑话/01 欢乐剧场/036 武大日记.wma
+[1] => wfio://E:/Music/04 笑话/01 欢乐剧场/087 大学趣闻.wma
+[2] => wfio://E:/Music/04 笑话/01 欢乐剧场/109 武大郎后传.wma
+[3] => wfio://E:/Music/04 笑话/01 欢乐剧场/117 孙大圣“评职”申请书.wma
+[4] => wfio://E:/Music/04 笑话/01 欢乐剧场/120 肖大明白.wma
+[5] => wfio://E:/Music/04 笑话/01 欢乐剧场/156 吃大户.wma
+[6] => wfio://E:/Music/04 笑话/01 欢乐剧场/160 说大道小.wma
+[7] => wfio://E:/Music/04 笑话/01 欢乐剧场/168 四大…….wma
+[8] => wfio://E:/Music/04 笑话/01 欢乐剧场/197 过大年.wma
 ```
 
 ## License
